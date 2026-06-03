@@ -1,24 +1,6 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: tame_postgres
-    restart: always
-    environment:
-      POSTGRES_DB: tame_db
-      POSTGRES_USER: tame_admin
-      POSTGRES_PASSWORD: tame_secure_pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tame_admin -d tame_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: tame_redis
@@ -43,18 +25,11 @@ services:
       DJANGO_SECRET_KEY: dev-secret-key-change-in-production
       DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: "*"
-      USE_SQLITE: "False"
-      POSTGRES_DB: tame_db
-      POSTGRES_USER: tame_admin
-      POSTGRES_PASSWORD: tame_secure_pass
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql://neondb_owner:npg_rKClaE9TIW7b@ep-silent-haze-ap3tyf3j-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
       REDIS_URL: redis://redis:6379/0
     ports:
       - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -74,16 +49,9 @@ services:
     restart: always
     environment:
       DJANGO_SECRET_KEY: dev-secret-key-change-in-production
-      USE_SQLITE: "False"
-      POSTGRES_DB: tame_db
-      POSTGRES_USER: tame_admin
-      POSTGRES_PASSWORD: tame_secure_pass
-      POSTGRES_HOST: db
-      POSTGRES_PORT: "5432"
+      DATABASE_URL: postgresql://neondb_owner:npg_rKClaE9TIW7b@ep-silent-haze-ap3tyf3j-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
       REDIS_URL: redis://redis:6379/0
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -108,7 +76,6 @@ services:
       - /app/.next
 
 volumes:
-  pgdata:
   redisdata:
   static_files:
   media_files:

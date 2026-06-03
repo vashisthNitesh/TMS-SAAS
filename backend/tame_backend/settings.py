@@ -64,26 +64,20 @@ WSGI_APPLICATION = 'tame_backend.wsgi.application'
 ASGI_APPLICATION = 'tame_backend.asgi.application'
 
 # Database
-USE_SQLITE = os.environ.get('USE_SQLITE', 'True') == 'True'
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://neondb_owner:npg_rKClaE9TIW7b@ep-silent-haze-ap3tyf3j-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require',
+)
 
-if USE_SQLITE:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('POSTGRES_DB', 'tame_db'),
-            'USER': os.environ.get('POSTGRES_USER', 'tame_admin'),
-            'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'tame_secure_pass'),
-            'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-        }
-    }
+import dj_database_url
+
+DATABASES = {
+    'default': dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        ssl_require='sslmode=require' in DATABASE_URL,
+    )
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
