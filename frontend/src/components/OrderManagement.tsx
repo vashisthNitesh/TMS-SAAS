@@ -13,16 +13,41 @@ interface Order {
   createdDate: string;
 }
 
-const INITIAL_ORDERS: Order[] = [
-  { id: "ORD-9081", customer: "TechCorp Global", origin: "Seattle Port", destination: "Chicago Hub", weight: "24,500 lbs", status: "In Transit", priority: "Express", carrier: "Falcon Carrier", createdDate: "2026-06-04" },
-  { id: "ORD-8921", customer: "Apex Retail Solutions", origin: "Chicago Hub", destination: "New York Depot", weight: "42,000 lbs", status: "Scheduled", priority: "Standard", carrier: "Allied Logistics", createdDate: "2026-06-04" },
-  { id: "ORD-8812", customer: "MedVantage Pharms", origin: "Miami Port", destination: "Atlanta Yard", weight: "12,800 lbs", status: "Delivered", priority: "Critical SLA", carrier: "Vanguard Carrier", createdDate: "2026-06-03" },
-  { id: "ORD-8744", customer: "BioGrid Energy", origin: "Atlanta Yard", destination: "Houston Terminal", weight: "88,200 lbs", status: "In Transit", priority: "Critical SLA", carrier: "Titan Heavy Haul", createdDate: "2026-06-03" },
-  { id: "ORD-8690", customer: "Zeta Logistics Corp", origin: "Houston Terminal", destination: "Denver CFA", weight: "18,900 lbs", status: "Pending", priority: "Standard", carrier: "Swift Express", createdDate: "2026-06-05" },
-];
+interface Trip {
+  id: string;
+  transporter: string;
+  vehicle: string;
+  driver: string;
+  phone: string;
+  origin: string;
+  destination: string;
+  progress: number;
+  status: "In Transit" | "Near Destination" | "Delayed" | "SLA Risk" | "Delivered";
+  eta: string;
+  cargo: string;
+  temp?: string;
+  routePoints: { x: number; y: number }[];
+  currentPos: { x: number; y: number };
+}
 
-export default function OrderManagement() {
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+interface OrderManagementProps {
+  orders: Order[];
+  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  setTrips: React.Dispatch<React.SetStateAction<Trip[]>>;
+}
+
+const getCoords = (name: string) => {
+  if (name.includes("Seattle")) return { x: 80, y: 80 };
+  if (name.includes("Los Angeles")) return { x: 90, y: 320 };
+  if (name.includes("Denver")) return { x: 190, y: 180 };
+  if (name.includes("Chicago")) return { x: 500, y: 160 };
+  if (name.includes("Houston")) return { x: 300, y: 380 };
+  if (name.includes("Atlanta")) return { x: 560, y: 320 };
+  if (name.includes("New York")) return { x: 680, y: 170 };
+  return { x: 400, y: 240 };
+};
+
+export default function OrderManagement({ orders, setOrders, setTrips }: OrderManagementProps) {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,19 +67,41 @@ export default function OrderManagement() {
 
   const handleCreateOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrder: Order = {
-      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: orderId,
       customer: formData.customer || "Walk-in Carrier Inc.",
       origin: formData.origin,
       destination: formData.destination,
       weight: formData.weight ? `${formData.weight} lbs` : "20,000 lbs",
-      status: "Pending",
+      status: "In Transit",
       priority: formData.priority,
       carrier: formData.carrier,
       createdDate: new Date().toISOString().split("T")[0],
     };
     
+    // Create matching live trip
+    const startPos = getCoords(formData.origin);
+    const endPos = getCoords(formData.destination);
+    
+    const newTrip: Trip = {
+      id: `TR-${Math.floor(8000 + Math.random() * 1999)}`,
+      transporter: formData.carrier,
+      vehicle: formData.carrier === "Swift Express" ? "TRK-7411 (LTL)" : "TRK-2090 (FTL)",
+      driver: "Carlos Santana",
+      phone: "+1 (555) 032-9011",
+      origin: formData.origin,
+      destination: formData.destination,
+      progress: 0,
+      status: "In Transit",
+      eta: "18:30 (On Time)",
+      cargo: "High-value Consumer Electronics",
+      routePoints: [startPos, { x: (startPos.x + endPos.x) / 2, y: (startPos.y + endPos.y) / 2 }, endPos],
+      currentPos: startPos
+    };
+
     setOrders([newOrder, ...orders]);
+    setTrips((prevTrips) => [newTrip, ...prevTrips]);
     setIsFormOpen(false);
     setFormStep(1);
     setFormData({
@@ -111,14 +158,14 @@ export default function OrderManagement() {
   });
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fade-in text-slate-800 font-sans">
       
       {/* Active Orders Grid Table */}
-      <section className="xl:col-span-2 glass-panel rounded-3xl p-6 flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+      <section className="xl:col-span-2 glass-panel rounded-2xl p-6 flex flex-col gap-6 bg-white border border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Active Order Intake</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Control sales contracts, allocation, and delivery schedule</p>
+            <h2 className="text-base font-bold text-slate-900">Active Order Intake</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Control sales contracts, allocation, and delivery schedule</p>
           </div>
           
           <div className="flex items-center gap-3">
@@ -129,30 +176,30 @@ export default function OrderManagement() {
                 placeholder="Search orders, customers..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+                className="pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-indigo transition-colors"
               />
             </div>
             
             <button
               onClick={() => setIsFormOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl shadow-lg shadow-purple-600/10 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-brand-indigo hover:bg-brand-indigo-hover text-white rounded-xl shadow-sm transition-colors"
             >
-              <PlusIcon size={14} />
+              <PlusIcon size={12} />
               New Order
             </button>
           </div>
         </div>
 
         {/* Tab filters */}
-        <div className="flex border-b border-white/5 pb-1 gap-4 text-xs font-mono">
+        <div className="flex border-b border-slate-100 pb-1 gap-4 text-xs font-mono">
           {["all", "pending", "scheduled", "in transit", "delivered"].map((status) => (
             <button
               key={status}
-              onClick={() => setFilterStatus(status === "in transit" ? "in transit" : status)}
+              onClick={() => setFilterStatus(status)}
               className={`pb-2.5 px-1 font-bold border-b-2 capitalize transition-colors ${
-                (status === "in transit" ? "in transit" : status) === filterStatus
-                  ? "border-purple-500 text-white"
-                  : "border-transparent text-slate-400 hover:text-white"
+                status === filterStatus
+                  ? "border-brand-indigo text-slate-900"
+                  : "border-transparent text-slate-400 hover:text-slate-900"
               }`}
             >
               {status}
@@ -164,43 +211,43 @@ export default function OrderManagement() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/5 text-slate-400 text-xs font-mono tracking-wider uppercase">
-                <th className="pb-3 px-4">Order ID</th>
-                <th className="pb-3 px-4">Customer</th>
-                <th className="pb-3 px-4">Routing Lane</th>
-                <th className="pb-3 px-4">Payload weight</th>
-                <th className="pb-3 px-4">Carrier</th>
-                <th className="pb-3 px-4">Priority SLA</th>
-                <th className="pb-3 px-4 text-right">Status</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold uppercase">
+                <th className="py-2.5 px-4 rounded-tl-lg">Order ID</th>
+                <th className="py-2.5 px-4">Customer</th>
+                <th className="py-2.5 px-4">Routing Lane</th>
+                <th className="py-2.5 px-4">Payload weight</th>
+                <th className="py-2.5 px-4">Carrier</th>
+                <th className="py-2.5 px-4">Priority SLA</th>
+                <th className="py-2.5 px-4 rounded-tr-lg text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.03] text-xs">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {filteredOrders.map((order) => {
-                let statusBadge = "text-purple-400 border-purple-500/20 bg-purple-500/5";
-                if (order.status === "In Transit") statusBadge = "text-cyan-400 border-cyan-500/20 bg-cyan-500/5";
-                if (order.status === "Delivered") statusBadge = "text-emerald-400 border-emerald-500/20 bg-emerald-500/5";
-                if (order.status === "Scheduled") statusBadge = "text-indigo-400 border-indigo-500/20 bg-indigo-500/5";
+                let statusBadge = "text-purple-700 border-purple-200 bg-purple-50";
+                if (order.status === "In Transit") statusBadge = "text-blue-700 border-blue-200 bg-blue-50";
+                if (order.status === "Delivered") statusBadge = "text-emerald-700 border-emerald-200 bg-emerald-50";
+                if (order.status === "Scheduled") statusBadge = "text-indigo-700 border-indigo-200 bg-indigo-50";
                 
-                let priorityBadge = "text-slate-400 bg-white/5";
-                if (order.priority === "Express") priorityBadge = "text-amber-400 bg-amber-500/5 border border-amber-500/10";
-                if (order.priority === "Critical SLA") priorityBadge = "text-rose-400 bg-rose-500/5 border border-rose-500/10";
+                let priorityBadge = "text-slate-600 bg-slate-50 border border-slate-200";
+                if (order.priority === "Express") priorityBadge = "text-amber-700 bg-amber-50 border border-amber-200";
+                if (order.priority === "Critical SLA") priorityBadge = "text-rose-700 bg-rose-50 border border-rose-200";
 
                 return (
-                  <tr key={order.id} className="hover:bg-white/[0.01] transition-colors">
-                    <td className="py-4 px-4 font-mono font-bold text-purple-400">{order.id}</td>
-                    <td className="py-4 px-4 font-semibold text-white">{order.customer}</td>
-                    <td className="py-4 px-4 text-slate-300">
+                  <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-brand-indigo">{order.id}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-900">{order.customer}</td>
+                    <td className="py-3 px-4 text-slate-600">
                       {order.origin} ➔ {order.destination}
                     </td>
-                    <td className="py-4 px-4 font-mono text-slate-400">{order.weight}</td>
-                    <td className="py-4 px-4 text-slate-300">{order.carrier}</td>
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-4 font-mono text-slate-500">{order.weight}</td>
+                    <td className="py-3 px-4 text-slate-600">{order.carrier}</td>
+                    <td className="py-3 px-4">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${priorityBadge}`}>
                         {order.priority}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusBadge}`}>
+                    <td className="py-3 px-4 text-right">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-[10px] font-semibold ${statusBadge}`}>
                         {order.status}
                       </span>
                     </td>
@@ -213,14 +260,14 @@ export default function OrderManagement() {
       </section>
 
       {/* CSV Importer Panel Card */}
-      <section className="glass-panel rounded-3xl p-6 flex flex-col gap-6">
+      <section className="glass-panel rounded-2xl p-6 flex flex-col gap-6 bg-white border border-slate-200 h-fit">
         <div>
-          <h2 className="text-lg font-bold text-white">Bulk Manifest Upload</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Import batches of sales orders via spreadsheet CSV</p>
+          <h2 className="text-base font-bold text-slate-900">Bulk Manifest Upload</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Import batches of sales orders via spreadsheet CSV</p>
         </div>
 
         {/* Upload Dropzone */}
-        <label className="border border-dashed border-white/10 hover:border-purple-500/30 bg-slate-950/40 hover:bg-slate-900/10 rounded-2xl p-6 text-center flex flex-col items-center gap-3 cursor-pointer transition-all">
+        <label className="border border-dashed border-slate-200 hover:border-brand-indigo bg-slate-50 hover:bg-slate-100/30 rounded-xl p-6 text-center flex flex-col items-center gap-3 cursor-pointer transition-all">
           <input
             type="file"
             accept=".csv"
@@ -228,26 +275,26 @@ export default function OrderManagement() {
             className="hidden"
             disabled={isParsing}
           />
-          <div className="h-10 w-10 rounded-xl bg-purple-500/5 border border-purple-500/10 flex items-center justify-center text-purple-400 shadow-md">
+          <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
             <UploadIcon size={18} />
           </div>
           <div>
-            <h3 className="text-xs font-semibold text-slate-200">Select manifest CSV</h3>
-            <p className="text-[10px] text-slate-500 mt-1">UTF-8 formatted layout sheets</p>
+            <h3 className="text-xs font-semibold text-slate-700">Select manifest CSV</h3>
+            <p className="text-[10px] text-slate-400 mt-1 font-mono">UTF-8 formatted layout sheets</p>
           </div>
         </label>
 
         {/* Telematics Terminal Outputs */}
         {csvConsoleLogs.length > 0 && (
-          <div className="flex-1 min-h-[180px] bg-slate-950 border border-white/5 rounded-2xl p-4 flex flex-col gap-2 font-mono text-[10px] relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/5 pb-1 text-slate-500">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-2 font-mono text-[10px] relative overflow-hidden min-h-[180px]">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1 text-slate-400">
               <span>MANIFEST PARSE LOGGER</span>
-              {isParsing && <span className="animate-pulse text-purple-400">PROCESSING...</span>}
+              {isParsing && <span className="animate-pulse text-brand-indigo font-bold">PROCESSING...</span>}
             </div>
             
-            <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 text-slate-400 pr-1 select-all">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 text-slate-600 pr-1 select-all">
               {csvConsoleLogs.map((log, idx) => (
-                <div key={idx} className={log.includes("SUCCESS") ? "text-emerald-400 font-bold" : ""}>
+                <div key={idx} className={log.includes("SUCCESS") ? "text-emerald-600 font-bold" : ""}>
                   {log}
                 </div>
               ))}
@@ -258,38 +305,38 @@ export default function OrderManagement() {
 
       {/* Slide-over manual order creator form */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-100 flex justify-end">
+        <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsFormOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-xs" onClick={() => setIsFormOpen(false)} />
           
           {/* Slider content */}
           <form
             onSubmit={handleCreateOrder}
-            className="relative w-full max-w-md bg-zinc-950 border-l border-white/10 h-full shadow-2xl p-6 flex flex-col gap-6 overflow-y-auto animate-slide-up"
+            className="relative w-full max-w-md bg-white border-l border-slate-200 h-full shadow-2xl p-6 flex flex-col gap-6 overflow-y-auto animate-slide-up text-slate-800"
           >
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-mono font-bold text-purple-400 tracking-wider">INTAKE WIZARD</span>
-                <h2 className="text-xl font-bold text-white mt-1">Manual Shipment Intake</h2>
+                <span className="text-[10px] font-mono font-bold text-brand-indigo tracking-wider">INTAKE WIZARD</span>
+                <h2 className="text-lg font-bold text-slate-900 mt-0.5">Manual Shipment Intake</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="h-8 w-8 rounded-lg hover:bg-white/5 border border-white/5 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                className="h-8 w-8 rounded-lg hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
               >
                 <CloseIcon size={16} />
               </button>
             </div>
 
             {/* Step indicator */}
-            <div className="flex justify-between items-center bg-slate-900/40 border border-white/5 rounded-xl p-2 font-mono text-[9px]">
+            <div className="flex justify-between items-center bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono text-[9px] font-bold text-slate-600">
               {["Route Profile", "Equipment & Payload", "SLA Priority"].map((step, idx) => (
                 <div
                   key={idx}
                   className={`px-2 py-1 rounded-md transition-colors ${
                     formStep === idx + 1
-                      ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                      : "text-slate-500"
+                      ? "bg-brand-indigo/10 text-brand-indigo border border-brand-indigo/20"
+                      : "text-slate-400"
                   }`}
                 >
                   Step {idx + 1}
@@ -301,23 +348,23 @@ export default function OrderManagement() {
             {formStep === 1 && (
               <div className="flex flex-col gap-4 animate-fade-in">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">CUSTOMER NAME</label>
+                  <label className="text-slate-500 text-xs font-mono">CUSTOMER NAME</label>
                   <input
                     type="text"
                     required
                     placeholder="Enter customer client name..."
                     value={formData.customer}
                     onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-indigo transition-colors"
                   />
                 </div>
                 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">ORIGIN NODE</label>
+                  <label className="text-slate-500 text-xs font-mono">ORIGIN NODE</label>
                   <select
                     value={formData.origin}
                     onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-850 focus:outline-none focus:border-brand-indigo transition-colors"
                   >
                     <option value="Seattle Port">Seattle Port (SEA-HUB)</option>
                     <option value="Los Angeles CFA">Los Angeles CFA (LAX-CFA)</option>
@@ -330,11 +377,11 @@ export default function OrderManagement() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">DESTINATION NODE</label>
+                  <label className="text-slate-500 text-xs font-mono">DESTINATION NODE</label>
                   <select
                     value={formData.destination}
                     onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-850 focus:outline-none focus:border-brand-indigo transition-colors"
                   >
                     <option value="Chicago Hub">Chicago Hub (ORD-HUB)</option>
                     <option value="New York Depot">New York Depot (NYC-DEPOT)</option>
@@ -351,23 +398,23 @@ export default function OrderManagement() {
             {formStep === 2 && (
               <div className="flex flex-col gap-4 animate-fade-in">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">PAYLOAD WEIGHT (LBS)</label>
+                  <label className="text-slate-500 text-xs font-mono">PAYLOAD WEIGHT (LBS)</label>
                   <input
                     type="number"
                     required
                     placeholder="e.g. 40000"
                     value={formData.weight}
                     onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-indigo transition-colors"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">ALLOCATED CARRIER</label>
+                  <label className="text-slate-500 text-xs font-mono">ALLOCATED CARRIER</label>
                   <select
                     value={formData.carrier}
                     onChange={(e) => setFormData({ ...formData, carrier: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs bg-slate-950 border border-white/5 rounded-xl text-slate-100 focus:outline-none focus:border-purple-500 transition-colors"
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-850 focus:outline-none focus:border-brand-indigo transition-colors"
                   >
                     <option value="Swift Express">Swift Express (LTL)</option>
                     <option value="Allied Logistics">Allied Logistics (Reefer)</option>
@@ -383,7 +430,7 @@ export default function OrderManagement() {
             {formStep === 3 && (
               <div className="flex flex-col gap-4 animate-fade-in">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 text-xs font-mono">PRIORITY TIER</label>
+                  <label className="text-slate-500 text-xs font-mono">PRIORITY TIER</label>
                   <div className="grid grid-cols-3 gap-3 font-sans">
                     {["Standard", "Express", "Critical SLA"].map((prio) => (
                       <button
@@ -392,8 +439,8 @@ export default function OrderManagement() {
                         onClick={() => setFormData({ ...formData, priority: prio as any })}
                         className={`py-3 text-[10px] font-semibold rounded-xl border transition-colors ${
                           formData.priority === prio
-                            ? "bg-purple-600/10 border-purple-500 text-purple-400 shadow-md shadow-purple-500/10"
-                            : "border-white/5 text-slate-400 hover:text-white"
+                            ? "bg-brand-indigo/5 border-brand-indigo text-brand-indigo shadow-sm"
+                            : "border-slate-200 text-slate-500 hover:text-slate-800 bg-white"
                         }`}
                       >
                         {prio}
@@ -402,22 +449,22 @@ export default function OrderManagement() {
                   </div>
                 </div>
 
-                <div className="bg-slate-900/20 border border-white/5 p-4 rounded-xl flex gap-3 mt-4">
-                  <AlertIcon size={16} className="text-purple-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-slate-400 leading-normal">
-                    This order will default to a <strong>Pending</strong> state. Upon submit, the routing engine will evaluate transporter lane contracts to finalize schedule options.
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex gap-3 mt-4">
+                  <AlertIcon size={16} className="text-brand-indigo flex-shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-slate-500 leading-normal">
+                    This order will default to an <strong>In Transit</strong> state. Upon submit, the routing engine will evaluate transporter lane contracts to generate live tracking coordinates.
                   </p>
                 </div>
               </div>
             )}
 
             {/* Navigation buttons */}
-            <div className="border-t border-white/5 pt-4 mt-auto flex gap-3 font-sans">
+            <div className="border-t border-slate-150 pt-4 mt-auto flex gap-3 font-sans">
               {formStep > 1 && (
                 <button
                   type="button"
                   onClick={() => setFormStep(formStep - 1)}
-                  className="px-4 py-2.5 text-xs font-semibold bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-colors"
+                  className="px-4 py-2.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors"
                 >
                   Back
                 </button>
@@ -426,14 +473,14 @@ export default function OrderManagement() {
                 <button
                   type="button"
                   onClick={() => setFormStep(formStep + 1)}
-                  className="flex-1 py-2.5 text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-colors text-center"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-brand-indigo hover:bg-brand-indigo-hover text-white rounded-xl transition-colors text-center shadow-sm"
                 >
                   Continue
                 </button>
               ) : (
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-600/10 transition-colors"
+                  className="flex-1 py-2.5 text-xs font-semibold bg-brand-emerald hover:bg-emerald-600 text-white rounded-xl shadow-sm transition-colors"
                 >
                   Submit Order Manifest
                 </button>
