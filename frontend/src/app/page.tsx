@@ -1,13 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Dashboard from "@/components/Dashboard";
 import ControlTower from "@/components/ControlTower";
 import OrderManagement from "@/components/OrderManagement";
-import BillingSettlements from "@/components/BillingSettlements";
 import RouteOptimization from "@/components/RouteOptimization";
+import BillingSettlements from "@/components/BillingSettlements";
 import FleetManagement from "@/components/FleetManagement";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import MasterConfig from "@/components/MasterConfig";
+import ProductInventory from "@/components/ProductInventory";
+import EquipmentRegistry from "@/components/EquipmentRegistry";
+import DocPermits from "@/components/DocPermits";
+import SpecializedModules from "@/components/SpecializedModules";
 
 import {
   RadarIcon,
@@ -22,7 +27,54 @@ import {
   CloseIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  SettingsIcon
+  SettingsIcon,
+  CheckIcon,
+  PlusIcon,
+  UploadIcon,
+  ClockIcon,
+  MapPinIcon,
+  GaugeIcon,
+  BroadcastIcon,
+  ForkliftIcon,
+  SlidersIcon,
+  SplitIcon,
+  PinCircleIcon,
+  UserCircleIcon,
+  MapPinsIcon,
+  ShelvesIcon,
+  GearIcon,
+  CompassIcon,
+  ListIcon,
+  ForkIcon,
+  ClockArrowIcon,
+  TableCheckIcon,
+  PinIcon,
+  LanesIcon,
+  FlagIcon,
+  DocListIcon,
+  CoinsIcon,
+  InvoiceIcon,
+  CarrierTruckIcon,
+  TrailerGearIcon,
+  TrailerIcon,
+  DocPenIcon,
+  RadarSweepIcon,
+  AmbulanceIcon,
+  UsersIcon,
+  GridIcon,
+  TreeIcon,
+  CalendarIcon,
+  TruckBusIcon,
+  MinusCircleIcon,
+  PalletBoxIcon,
+  PageIcon,
+  FolderIcon,
+  CreditCardIcon,
+  StoreIcon,
+  BarChartIcon,
+  LinkIcon,
+  IdCardIcon,
+  DownloadCloudIcon
 } from "@/components/icons";
 
 interface Order {
@@ -73,12 +125,18 @@ interface NotificationItem {
 }
 
 export default function Shell() {
-  const [activeTab, setActiveTab] = useState("control-tower");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Accordion toggle states
+  const [opsExpanded, setOpsExpanded] = useState(true);
+  const [distExpanded, setDistExpanded] = useState(true);
+  const [transExpanded, setTransExpanded] = useState(true);
+  const [configExpanded, setConfigExpanded] = useState(true);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Shared Global Operational States
@@ -218,7 +276,7 @@ export default function Shell() {
     }
   ]);
 
-  // 2. Telemetry Coordinate Progression Loop
+  // Telemetry Coordinate Progression Loop
   useEffect(() => {
     const interval = setInterval(() => {
       setTrips((prevTrips) =>
@@ -285,24 +343,61 @@ export default function Shell() {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
-  const navItems = [
-    { id: "control-tower", label: "Control Tower", icon: RadarIcon, badge: "Live" },
-    { id: "order-intake", label: "Order Intake", icon: PackageIcon },
-    { id: "route-optimization", label: "Route Planner", icon: RouteIcon },
-    { id: "billing-settlements", label: "Settlements", icon: BillingIcon },
-    { id: "fleet-management", label: "Fleet & Drivers", icon: TruckIcon },
-    { id: "analytics-reports", label: "Analytics Dashboard", icon: AnalyticsIcon },
-    { id: "master-config", label: "System Config", icon: SettingsIcon },
-  ];
-
   const searchCommands = [
+    { title: "Jump to Executive Dashboard", action: () => { setActiveTab("dashboard"); setSearchOpen(false); } },
     { title: "Jump to Control Tower Operations", action: () => { setActiveTab("control-tower"); setSearchOpen(false); } },
-    { title: "Intake New Shipment Manifest", action: () => { setActiveTab("order-intake"); setSearchOpen(false); } },
-    { title: "Launch Route Optimization Solver", action: () => { setActiveTab("route-optimization"); setSearchOpen(false); } },
-    { title: "Audit Pending Freight Claims", action: () => { setActiveTab("billing-settlements"); setSearchOpen(false); } },
-    { title: "View Driver & Carrier Roster", action: () => { setActiveTab("fleet-management"); setSearchOpen(false); } },
-    { title: "Generate Transporter OTP Reports", action: () => { setActiveTab("analytics-reports"); setSearchOpen(false); } },
-    { title: "Configure SLAs & Branch Geofences", action: () => { setActiveTab("master-config"); setSearchOpen(false); } },
+    { title: "Jump to Analytics & Reports", action: () => { setActiveTab("analytics-reports"); setSearchOpen(false); } },
+    
+    // Distribution
+    { title: "Distribution: Intake Shipment Orders", action: () => { setActiveTab("dist-orders"); setSearchOpen(false); } },
+    { title: "Distribution: Roster Active Trips", action: () => { setActiveTab("dist-trips"); setSearchOpen(false); } },
+    { title: "Distribution: Route Optimization Planner", action: () => { setActiveTab("dist-trip-planning"); setSearchOpen(false); } },
+    { title: "Distribution: B2B Customers Roster", action: () => { setActiveTab("dist-customers"); setSearchOpen(false); } },
+    { title: "Distribution: Geocoded Address Directory", action: () => { setActiveTab("dist-addresses"); setSearchOpen(false); } },
+    { title: "Distribution: Products & Items Master", action: () => { setActiveTab("dist-items"); setSearchOpen(false); } },
+    { title: "Distribution: Warehouse Storage Profiles", action: () => { setActiveTab("dist-storage-types"); setSearchOpen(false); } },
+    { title: "Distribution: Routing & SLA Configs", action: () => { setActiveTab("dist-order-config"); setSearchOpen(false); } },
+    { title: "Distribution: Regional Transit Zones", action: () => { setActiveTab("dist-zones"); setSearchOpen(false); } },
+    { title: "Distribution: Freight Class Categories", action: () => { setActiveTab("dist-categories"); setSearchOpen(false); } },
+    { title: "Distribution: Integration Intake Channels", action: () => { setActiveTab("dist-channels"); setSearchOpen(false); } },
+    { title: "Distribution: Geocode Address Validator", action: () => { setActiveTab("dist-address-update"); setSearchOpen(false); } },
+    { title: "Distribution: Sales Reconciliation Billing", action: () => { setActiveTab("dist-reconciliation"); setSearchOpen(false); } },
+
+    // Transport
+    { title: "Transport: Dispatch Booked Orders", action: () => { setActiveTab("trans-orders"); setSearchOpen(false); } },
+    { title: "Transport: Track Active Hauls", action: () => { setActiveTab("trans-trips"); setSearchOpen(false); } },
+    { title: "Transport: Consignor & Consignee Registry", action: () => { setActiveTab("trans-customers"); setSearchOpen(false); } },
+    { title: "Transport: Waypoints & Shipping Points", action: () => { setActiveTab("trans-addresses"); setSearchOpen(false); } },
+    { title: "Transport: Active Terminals GPS Maps", action: () => { setActiveTab("trans-locations"); setSearchOpen(false); } },
+    { title: "Transport: Lane Contracts & Tariff Cards", action: () => { setActiveTab("trans-lanes"); setSearchOpen(false); } },
+    { title: "Transport: Active Status Milestones", action: () => { setActiveTab("trans-milestones"); setSearchOpen(false); } },
+    { title: "Transport: Milestone Lifecycle Templates", action: () => { setActiveTab("trans-milestone-templates"); setSearchOpen(false); } },
+    { title: "Transport: Accessorial Detention Tariffs", action: () => { setActiveTab("trans-charges"); setSearchOpen(false); } },
+    { title: "Transport: Freight Invoices Audit Center", action: () => { setActiveTab("trans-invoices"); setSearchOpen(false); } },
+    { title: "Transport: Container ISO Roster", action: () => { setActiveTab("trans-container-types"); setSearchOpen(false); } },
+    { title: "Transport: Trailer Specifications Roster", action: () => { setActiveTab("trans-trailer-types"); setSearchOpen(false); } },
+    { title: "Transport: Physical Trailers Directory", action: () => { setActiveTab("trans-trailers"); setSearchOpen(false); } },
+    { title: "Transport: Hazmat Packaging Products", action: () => { setActiveTab("trans-products"); setSearchOpen(false); } },
+    { title: "Transport: Service Contract SLA Agreements", action: () => { setActiveTab("trans-contracts"); setSearchOpen(false); } },
+    { title: "Transport: Radar Geofence Boundaries", action: () => { setActiveTab("trans-geofences"); setSearchOpen(false); } },
+    { title: "Transport: Patient Transport Ambulance dispatch", action: () => { setActiveTab("trans-patient"); setSearchOpen(false); } },
+    { title: "Transport: Carrier Portal User Accounts", action: () => { setActiveTab("trans-users"); setSearchOpen(false); } },
+    { title: "Transport: Fleet Assets SAM ELD Telematics", action: () => { setActiveTab("trans-assets"); setSearchOpen(false); } },
+
+    // Configurations
+    { title: "Configurations: Branch Depot Setup", action: () => { setActiveTab("config-branches"); setSearchOpen(false); } },
+    { title: "Configurations: Dedicated Shipping Projects", action: () => { setActiveTab("config-projects"); setSearchOpen(false); } },
+    { title: "Configurations: Truck Pull Specifications", action: () => { setActiveTab("config-vehicle-types"); setSearchOpen(false); } },
+    { title: "Configurations: Delayed Overrides Log", action: () => { setActiveTab("config-exceptions"); setSearchOpen(false); } },
+    { title: "Configurations: Pallet Dimensions Registry", action: () => { setActiveTab("config-package-types"); setSearchOpen(false); } },
+    { title: "Configurations: Mandatory Document Forms", action: () => { setActiveTab("config-doc-types"); setSearchOpen(false); } },
+    { title: "Configurations: Carrier Permits Verification", action: () => { setActiveTab("config-permits"); setSearchOpen(false); } },
+    { title: "Configurations: Scale Expense Code Tariffs", action: () => { setActiveTab("config-expense-types"); setSearchOpen(false); } },
+    { title: "Configurations: Broker Directory FMCSA Safety", action: () => { setActiveTab("config-vendors"); setSearchOpen(false); } },
+    { title: "Configurations: Operational Reports Exporter", action: () => { setActiveTab("config-reports"); setSearchOpen(false); } },
+    { title: "Configurations: EDI & API Webhooks Integration", action: () => { setActiveTab("config-integrations"); setSearchOpen(false); } },
+    { title: "Configurations: Tech Support Release Notes", action: () => { setActiveTab("config-support"); setSearchOpen(false); } },
+    { title: "Configurations: Download Driver Mobile App", action: () => { setActiveTab("config-download-apk"); setSearchOpen(false); } },
   ];
 
   const filteredCommands = searchCommands.filter((cmd) =>
@@ -434,52 +529,140 @@ export default function Shell() {
 
       {/* Main Console Layout */}
       <div className="flex-1 flex flex-col lg:flex-row">
-        
-        {/* Sidebar Component */}
+        {/* Collapsible B2B Sidebar Category Accordion */}
         <aside
-          className={`border-r border-slate-200 bg-white p-4 flex flex-col gap-6 transition-all duration-200 ${
+          className={`border-r border-slate-200 bg-white p-4 flex flex-col gap-5 transition-all duration-200 ${
             sidebarCollapsed ? "w-20" : "w-64"
           }`}
         >
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between px-2 mb-2">
-              {!sidebarCollapsed && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">Consoles</p>}
-              <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-6 w-6 rounded-md hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors ml-auto cursor-pointer"
-              >
-                {sidebarCollapsed ? <ChevronRightIcon size={12} /> : <ChevronDownIcon size={12} />}
-              </button>
-            </div>
-            
-            <nav className="flex flex-col gap-1">
-              {navItems.map((item) => {
-                const IconComponent = item.icon;
-                const isActive = activeTab === item.id;
-                
-                return (
+          {/* Header Toggle */}
+          <div className="flex items-center justify-between px-2">
+            {!sidebarCollapsed && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">Operations OS</p>}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="h-6 w-6 rounded-md hover:bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors ml-auto cursor-pointer"
+            >
+              {sidebarCollapsed ? <ChevronRightIcon size={12} /> : <ChevronDownIcon size={12} />}
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4 overflow-y-auto flex-1 pr-0.5">
+            {[
+              {
+                id: "ops",
+                title: "Operations Tower",
+                expanded: opsExpanded,
+                setExpanded: setOpsExpanded,
+                items: [
+                  { id: "dashboard", label: "Dashboard", icon: GaugeIcon, color: "text-emerald-600" },
+                  { id: "control-tower", label: "Control Tower", icon: BroadcastIcon, color: "text-amber-600" },
+                  { id: "analytics-reports", label: "Analytics", icon: BarChartIcon, color: "text-blue-500" }
+                ]
+              },
+              {
+                id: "dist",
+                title: "Distribution",
+                expanded: distExpanded,
+                setExpanded: setDistExpanded,
+                items: [
+                  { id: "dist-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500" },
+                  { id: "dist-trips", label: "Trips", icon: SplitIcon, color: "text-red-500" },
+                  { id: "dist-trip-planning", label: "Trip Planning", icon: PinCircleIcon, color: "text-yellow-500" },
+                  { id: "dist-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500" },
+                  { id: "dist-addresses", label: "Addresses", icon: MapPinsIcon, color: "text-purple-500" },
+                  { id: "dist-items", label: "Items", icon: PackageIcon, color: "text-pink-500" },
+                  { id: "dist-storage-types", label: "Storage Types", icon: ShelvesIcon, color: "text-blue-500" },
+                  { id: "dist-order-config", label: "Order Config", icon: GearIcon, color: "text-blue-600" },
+                  { id: "dist-zones", label: "Zones", icon: CompassIcon, color: "text-blue-500" },
+                  { id: "dist-categories", label: "Categories", icon: ListIcon, color: "text-blue-500" },
+                  { id: "dist-channels", label: "Channels", icon: ForkIcon, color: "text-blue-500" },
+                  { id: "dist-address-update", label: "Address Update", icon: ClockArrowIcon, color: "text-amber-800" },
+                  { id: "dist-reconciliation", label: "Order Reconciliation", icon: TableCheckIcon, color: "text-emerald-600" }
+                ]
+              },
+              {
+                id: "trans",
+                title: "Transport",
+                expanded: transExpanded,
+                setExpanded: setTransExpanded,
+                items: [
+                  { id: "trans-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500" },
+                  { id: "trans-trips", label: "Trips", icon: SplitIcon, color: "text-red-500" },
+                  { id: "trans-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500" },
+                  { id: "trans-addresses", label: "Addresses", icon: MapPinsIcon, color: "text-purple-500" },
+                  { id: "trans-locations", label: "Locations", icon: PinIcon, color: "text-emerald-500" },
+                  { id: "trans-lanes", label: "Lanes", icon: LanesIcon, color: "text-amber-800" },
+                  { id: "trans-milestones", label: "Milestones", icon: FlagIcon, color: "text-purple-500" },
+                  { id: "trans-milestone-templates", label: "Milestone Templates", icon: DocListIcon, color: "text-purple-650" },
+                  { id: "trans-charges", label: "Charges", icon: CoinsIcon, color: "text-teal-600" },
+                  { id: "trans-invoices", label: "Invoices", icon: InvoiceIcon, color: "text-blue-500" },
+                  { id: "trans-container-types", label: "Container Types", icon: CarrierTruckIcon, color: "text-blue-500" },
+                  { id: "trans-trailer-types", label: "Trailer Types", icon: TrailerGearIcon, color: "text-blue-500" },
+                  { id: "trans-trailers", label: "Trailers", icon: TrailerIcon, color: "text-blue-500" },
+                  { id: "trans-products", label: "Products", icon: PackageIcon, color: "text-blue-500" },
+                  { id: "trans-contracts", label: "Customer Contracts", icon: DocPenIcon, color: "text-blue-500" },
+                  { id: "trans-geofences", label: "Geofences", icon: RadarSweepIcon, color: "text-blue-500" },
+                  { id: "trans-patient", label: "Patient Transport", icon: AmbulanceIcon, color: "text-blue-500" },
+                  { id: "trans-users", label: "Users", icon: UsersIcon, color: "text-blue-500" },
+                  { id: "trans-assets", label: "Assets", icon: GridIcon, color: "text-blue-500" }
+                ]
+              },
+              {
+                id: "config",
+                title: "Configurations",
+                expanded: configExpanded,
+                setExpanded: setConfigExpanded,
+                items: [
+                  { id: "config-branches", label: "Branches", icon: TreeIcon, color: "text-emerald-600" },
+                  { id: "config-projects", label: "Projects", icon: CalendarIcon, color: "text-pink-500" },
+                  { id: "config-vehicle-types", label: "Vehicle Types", icon: TruckBusIcon, color: "text-amber-600" },
+                  { id: "config-exceptions", label: "Exceptions", icon: MinusCircleIcon, color: "text-slate-400" },
+                  { id: "config-package-types", label: "Package Types", icon: PalletBoxIcon, color: "text-slate-500" },
+                  { id: "config-doc-types", label: "Document Type", icon: PageIcon, color: "text-slate-900" },
+                  { id: "config-permits", label: "Permits", icon: FolderIcon, color: "text-blue-500" },
+                  { id: "config-expense-types", label: "Expense Types", icon: CreditCardIcon, color: "text-blue-500" },
+                  { id: "config-vendors", label: "Vendors", icon: StoreIcon, color: "text-blue-500" },
+                  { id: "config-reports", label: "Reports", icon: BarChartIcon, color: "text-blue-500" },
+                  { id: "config-integrations", label: "Integrations", icon: LinkIcon, color: "text-blue-500" },
+                  { id: "config-support", label: "Support", icon: IdCardIcon, color: "text-emerald-600" },
+                  { id: "config-download-apk", label: "Download APK", icon: DownloadCloudIcon, color: "text-emerald-600" }
+                ]
+              }
+            ].map((cat) => (
+              <div key={cat.id} className="flex flex-col gap-1">
+                {!sidebarCollapsed && (
                   <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center px-3 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all group border ${
-                      isActive
-                        ? "bg-slate-900 border-slate-900 text-white shadow-xs"
-                        : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                    } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                    onClick={() => cat.setExpanded(!cat.expanded)}
+                    className="flex items-center justify-between px-2 py-1 text-[10px] font-bold text-slate-400 uppercase font-mono tracking-wider cursor-pointer hover:text-slate-650"
                   >
-                    <IconComponent size={16} className={isActive ? "text-white" : "text-slate-450 group-hover:text-slate-800 transition-colors"} />
-                    {!sidebarCollapsed && (
-                      <span className="flex-1 text-left">{item.label}</span>
-                    )}
-                    {!sidebarCollapsed && item.badge && (
-                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded text-[8px] font-bold font-mono">
-                        {item.badge}
-                      </span>
-                    )}
+                    <span>{cat.title}</span>
+                    {cat.expanded ? <ChevronDownIcon size={10} /> : <ChevronRightIcon size={10} />}
                   </button>
-                );
-              })}
-            </nav>
+                )}
+                {(cat.expanded || sidebarCollapsed) && (
+                  <div className="flex flex-col gap-0.5">
+                    {cat.items.map((item) => {
+                      const isActive = activeTab === item.id;
+                      const IconComponent = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveTab(item.id)}
+                          className={`w-full flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold font-sans transition-all border ${
+                            isActive
+                              ? "bg-[#1a5b6e] border-[#1a5b6e] text-white shadow-xs"
+                              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                          } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                        >
+                          <IconComponent size={16} className={isActive ? "text-white" : item.color} />
+                          {!sidebarCollapsed && <span>{item.label}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* User profile section */}
@@ -500,38 +683,71 @@ export default function Shell() {
 
         {/* Dynamic Panel Workspace */}
         <main className="flex-1 p-6 lg:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
+          {activeTab === "dashboard" && <Dashboard />}
           {activeTab === "control-tower" && (
             <ControlTower trips={trips} setTrips={setTrips} events={events} setEvents={setEvents} />
           )}
-          {activeTab === "order-intake" && (
+          {activeTab === "analytics-reports" && <AnalyticsDashboard />}
+          
+          {/* Distribution */}
+          {activeTab === "dist-orders" && (
             <OrderManagement orders={orders} setOrders={setOrders} setTrips={setTrips} />
           )}
-          {activeTab === "route-optimization" && (
-            <RouteOptimization orders={orders} />
-          )}
-          {activeTab === "billing-settlements" && (
-            <BillingSettlements invoices={invoices} setInvoices={setInvoices} />
-          )}
-          {activeTab === "fleet-management" && (
+          {activeTab === "dist-trips" && (
             <FleetManagement />
           )}
-          {activeTab === "analytics-reports" && (
-            <AnalyticsDashboard />
+          {activeTab === "dist-trip-planning" && (
+            <RouteOptimization orders={orders} />
           )}
-          {activeTab === "master-config" && (
-            <MasterConfig />
+          {activeTab === "dist-items" && <ProductInventory />}
+          {activeTab === "dist-reconciliation" && (
+            <BillingSettlements invoices={invoices} setInvoices={setInvoices} />
+          )}
+
+          {/* Transport */}
+          {activeTab === "trans-orders" && (
+            <OrderManagement orders={orders} setOrders={setOrders} setTrips={setTrips} />
+          )}
+          {activeTab === "trans-trips" && (
+            <FleetManagement />
+          )}
+          {activeTab === "trans-lanes" && <MasterConfig />}
+          {activeTab === "trans-invoices" && (
+            <BillingSettlements invoices={invoices} setInvoices={setInvoices} />
+          )}
+          {activeTab === "trans-container-types" && <EquipmentRegistry />}
+          {activeTab === "trans-trailer-types" && <EquipmentRegistry />}
+          {activeTab === "trans-trailers" && <EquipmentRegistry />}
+          {activeTab === "trans-products" && <ProductInventory />}
+          {activeTab === "trans-geofences" && <MasterConfig />}
+
+          {/* Configurations */}
+          {activeTab === "config-branches" && <MasterConfig />}
+          {activeTab === "config-permits" && <DocPermits />}
+
+          {/* Specialized Custom Modules Fallback */}
+          {[
+            "dist-customers", "dist-addresses", "dist-storage-types", "dist-order-config",
+            "dist-zones", "dist-categories", "dist-channels", "dist-address-update",
+            "trans-customers", "trans-addresses", "trans-locations", "trans-milestones",
+            "trans-milestone-templates", "trans-charges", "trans-contracts", "trans-patient",
+            "trans-users", "trans-assets", "config-projects", "config-vehicle-types",
+            "config-exceptions", "config-package-types", "config-doc-types", "config-expense-types",
+            "config-vendors", "config-reports", "config-integrations", "config-support",
+            "config-download-apk"
+          ].includes(activeTab) && (
+            <SpecializedModules tab={activeTab.split("-").slice(1).join("-")} />
           )}
         </main>
-
       </div>
 
       {/* Global Footer */}
       <footer className="border-t border-slate-200 bg-white px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] text-slate-400 font-mono shadow-xs">
-        <p>© 2026 TAME PLATFORM. B2B Enterprise Edition.</p>
+        <p>© 2026 TAME PLATFORM. Grouped B2B Enterprise Console.</p>
         <div className="flex gap-4 font-semibold">
           <span className="text-brand-emerald">Telematics Core Connected</span>
           <span className="text-slate-300">•</span>
-          <span>v1.2.0 Stable</span>
+          <span>v1.3.0 Stable</span>
         </div>
       </footer>
 
