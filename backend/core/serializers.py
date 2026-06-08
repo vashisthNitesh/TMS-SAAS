@@ -1,10 +1,12 @@
 from rest_framework import serializers
 from .models import (
-    Tenant, Role, User, Customer, Warehouse,
+    Tenant, RoleTemplate, Role, User, Customer, Warehouse,
     Driver, Vehicle, Transporter,
     Order, OrderItem, Job, Trip, TripJob,
     TripMilestone, TripEvent, PodAttachment,
     Expense, Invoice,
+    BusinessUnit, Branch, Department, TenantModule, TenantConfiguration,
+    CustomFieldDefinition, CustomFieldValue, CustomWorkflow,
 )
 
 
@@ -23,10 +25,15 @@ class RoleSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
+    role_name = serializers.CharField(source='role.role_name', read_only=True)
+    tenant_name = serializers.CharField(source='tenant.company_name', read_only=True)
+    business_unit_name = serializers.CharField(source='business_unit.name', read_only=True)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'full_name', 'tenant', 'role', 'is_active', 'password')
+        fields = ('id', 'username', 'email', 'full_name', 'tenant', 'tenant_name', 'role', 'role_name', 'business_unit', 'business_unit_name', 'branch', 'branch_name', 'department', 'department_name', 'is_active', 'password')
         read_only_fields = ('id',)
 
     def create(self, validated_data):
@@ -36,6 +43,68 @@ class UserSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.save()
         return user
+
+
+class RoleTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoleTemplate
+        fields = '__all__'
+
+
+class BusinessUnitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BusinessUnit
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class BranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Branch
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Department
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class TenantModuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantModule
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class TenantConfigurationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TenantConfiguration
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class CustomFieldDefinitionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomFieldDefinition
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at')
+
+
+class CustomFieldValueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomFieldValue
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class CustomWorkflowSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomWorkflow
+        fields = '__all__'
+        read_only_fields = ('id', 'created_at', 'updated_at')
 
 
 class CustomerSerializer(serializers.ModelSerializer):

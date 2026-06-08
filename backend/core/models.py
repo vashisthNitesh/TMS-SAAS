@@ -10,11 +10,27 @@ class Tenant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company_name = models.CharField(max_length=255)
     subdomain = models.CharField(max_length=100, unique=True)
+    custom_domain = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    timezone = models.CharField(max_length=100, default='UTC')
+    currency = models.CharField(max_length=3, default='USD')
+    language = models.CharField(max_length=10, default='en')
+    branding_logo = models.TextField(null=True, blank=True)
+    theme_primary = models.CharField(max_length=7, default='#1a5b6e')
+    theme_secondary = models.CharField(max_length=7, default='#6366f1')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.company_name
+
+
+class RoleTemplate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    template_name = models.CharField(max_length=100)
+    default_permissions = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return self.template_name
 
 
 class Role(models.Model):
@@ -25,14 +41,163 @@ class Role(models.Model):
         return self.role_name
 
 
+class BusinessUnit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='business_units')
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'code')
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class Branch(models.Model):
+    BRANCH_TYPE_CHOICES = (
+        ('PORT', 'Port'),
+        ('CFA', 'CFA'),
+        ('HUB', 'Hub'),
+        ('DEPOT', 'Depot'),
+        ('YARD', 'Yard'),
+    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='branches')
+    business_unit = models.ForeignKey(BusinessUnit, on_delete=models.CASCADE, related_name='branches', null=True, blank=True)
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50)
+    branch_type = models.CharField(max_length=50, choices=BRANCH_TYPE_CHOICES, default='HUB')
+    address = models.TextField()
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    geofence_radius_meters = models.IntegerField(default=150)
+    operating_hours = models.CharField(max_length=255, default='24/7')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'code')
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class Department(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='departments')
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'code')
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True, related_name='users')
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    business_unit = models.ForeignKey(BusinessUnit, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
     full_name = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return self.email or self.username
+
+
+class TenantModule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='modules')
+    module_key = models.CharField(max_length=100)
+    is_enabled = models.BooleanField(default=True)
+    config = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'module_key')
+
+    def __str__(self):
+        return f"{self.tenant.company_name} - {self.module_key} ({'Enabled' if self.is_enabled else 'Disabled'})"
+
+
+class TenantConfiguration(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='configurations')
+    config_key = models.CharField(max_length=255)
+    config_value = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'config_key')
+
+    def __str__(self):
+        return f"{self.tenant.company_name} - {self.config_key}"
+
+
+class CustomFieldDefinition(models.Model):
+    FIELD_TYPE_CHOICES = (
+        ('TEXT', 'Text'),
+        ('NUMBER', 'Number'),
+        ('SELECT', 'Select'),
+        ('DATE', 'Date'),
+        ('BOOLEAN', 'Boolean'),
+    )
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='custom_fields')
+    target_model = models.CharField(max_length=100) # e.g. 'Order', 'Customer', 'Vehicle'
+    field_name = models.CharField(max_length=100)
+    field_type = models.CharField(max_length=50, choices=FIELD_TYPE_CHOICES, default='TEXT')
+    is_required = models.BooleanField(default=False)
+    choices = models.JSONField(default=list, blank=True)
+    default_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('tenant', 'target_model', 'field_name')
+
+    def __str__(self):
+        return f"{self.tenant.company_name} - {self.target_model} - {self.field_name}"
+
+
+class CustomFieldValue(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    definition = models.ForeignKey(CustomFieldDefinition, on_delete=models.CASCADE, related_name='values')
+    entity_id = models.UUIDField() # ID of the target entity
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('definition', 'entity_id')
+
+    def __str__(self):
+        return f"{self.definition.field_name} = {self.value}"
+
+
+class CustomWorkflow(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='custom_workflows')
+    target_model = models.CharField(max_length=100) # e.g. 'Order', 'Trip'
+    states = models.JSONField(default=list) # e.g. ["PENDING", "APPROVED", "CANCELLED"]
+    transitions = models.JSONField(default=list) # e.g. [{"from": "PENDING", "to": "APPROVED", "roles": ["ADMIN"]}]
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('tenant', 'target_model')
+
+    def __str__(self):
+        return f"{self.tenant.company_name} - Workflow for {self.target_model}"
 
 
 class Customer(models.Model):

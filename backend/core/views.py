@@ -6,14 +6,16 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import (
-    Tenant, Role, User, Customer, Warehouse,
+    Tenant, RoleTemplate, Role, User, Customer, Warehouse,
     Driver, Vehicle, Transporter,
     Order, OrderItem, Job, Trip, TripJob,
     TripMilestone, TripEvent, PodAttachment,
     Expense, Invoice,
+    BusinessUnit, Branch, Department, TenantModule, TenantConfiguration,
+    CustomFieldDefinition, CustomFieldValue, CustomWorkflow,
 )
 from .serializers import (
-    TenantSerializer, RoleSerializer, UserSerializer,
+    TenantSerializer, RoleTemplateSerializer, RoleSerializer, UserSerializer,
     CustomerSerializer, WarehouseSerializer, DriverSerializer,
     VehicleSerializer, TransporterSerializer,
     OrderSerializer, OrderCreateSerializer, OrderItemSerializer,
@@ -22,6 +24,9 @@ from .serializers import (
     TripEventSerializer, PodAttachmentSerializer,
     ExpenseSerializer, InvoiceSerializer,
     DashboardStatsSerializer,
+    BusinessUnitSerializer, BranchSerializer, DepartmentSerializer,
+    TenantModuleSerializer, TenantConfigurationSerializer,
+    CustomFieldDefinitionSerializer, CustomFieldValueSerializer, CustomWorkflowSerializer,
 )
 from .tasks import generate_jobs_for_order
 
@@ -30,6 +35,102 @@ class TenantViewSet(viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'onboard':
+            return [AllowAny()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def onboard(self, request):
+        from django.db import transaction
+        data = request.data
+        
+        company_name = data.get('company_name')
+        subdomain = data.get('subdomain')
+        if not company_name or not subdomain:
+            return Response({'error': 'company_name and subdomain are required'}, status=400)
+            
+        try:
+            with transaction.atomic():
+                tenant = Tenant.objects.create(
+                    company_name=company_name,
+                    subdomain=subdomain,
+                    timezone=data.get('timezone', 'UTC'),
+                    currency=data.get('currency', 'USD'),
+                    language=data.get('language', 'en'),
+                    theme_primary=data.get('theme_primary', '#1a5b6e'),
+                    theme_secondary=data.get('theme_secondary', '#6366f1'),
+                )
+                
+                bu = BusinessUnit.objects.create(
+                    tenant=tenant,
+                    name=f"{company_name} HQ Business Unit",
+                    code=f"HQ-BU",
+                )
+                
+                branch = Branch.objects.create(
+                    tenant=tenant,
+                    business_unit=bu,
+                    name=f"{company_name} Main Hub",
+                    code="HQ-HUB",
+                    branch_type="HUB",
+                    address=data.get('address', '123 Enterprise Way'),
+                    latitude=data.get('latitude', 0.0),
+                    longitude=data.get('longitude', 0.0),
+                )
+                
+                dept = Department.objects.create(
+                    tenant=tenant,
+                    name="Operations",
+                    code="OPS",
+                )
+                
+                default_modules = ['CRM', 'TRANSPORTATION', 'INVENTORY']
+                for mod_key in default_modules:
+                    TenantModule.objects.create(
+                        tenant=tenant,
+                        module_key=mod_key,
+                        is_enabled=True,
+                        config={}
+                    )
+                
+                admin_role = Role.objects.create(
+                    role_name="Admin",
+                    permissions={"all": True}
+                )
+                
+                username = data.get('admin_username')
+                email = data.get('admin_email')
+                password = data.get('admin_password')
+                full_name = data.get('admin_full_name', 'Administrator')
+                
+                if not username or not password or not email:
+                    raise Exception('admin_username, admin_email, and admin_password are required')
+                    
+                admin_user = User.objects.create(
+                    username=username,
+                    email=email,
+                    tenant=tenant,
+                    role=admin_role,
+                    business_unit=bu,
+                    branch=branch,
+                    department=dept,
+                    full_name=full_name,
+                    is_staff=True
+                )
+                admin_user.set_password(password)
+                admin_user.save()
+                
+            return Response({
+                'status': 'onboarding_completed',
+                'tenant_id': str(tenant.id),
+                'admin_user_id': str(admin_user.id),
+                'message': f"Organization {company_name} successfully onboarded."
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -436,3 +537,114 @@ class ControlTowerViewSet(viewsets.ViewSet):
         if tenant:
             qs = qs.filter(tenant=tenant)
         return Response(TripListSerializer(qs, many=True).data)
+
+
+class RoleTemplateViewSet(viewsets.ModelViewSet):
+    queryset = RoleTemplate.objects.all()
+    serializer_class = RoleTemplateSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class BusinessUnitViewSet(viewsets.ModelViewSet):
+    serializer_class = BusinessUnitSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['tenant']
+    search_fields = ['name', 'code']
+
+    def get_queryset(self):
+        qs = BusinessUnit.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class BranchViewSet(viewsets.ModelViewSet):
+    serializer_class = BranchSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['tenant', 'business_unit', 'branch_type']
+    search_fields = ['name', 'code']
+
+    def get_queryset(self):
+        qs = Branch.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class DepartmentViewSet(viewsets.ModelViewSet):
+    serializer_class = DepartmentSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['tenant']
+    search_fields = ['name', 'code']
+
+    def get_queryset(self):
+        qs = Department.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class TenantModuleViewSet(viewsets.ModelViewSet):
+    serializer_class = TenantModuleSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['tenant', 'module_key', 'is_enabled']
+
+    def get_queryset(self):
+        qs = TenantModule.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class TenantConfigurationViewSet(viewsets.ModelViewSet):
+    serializer_class = TenantConfigurationSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['tenant', 'config_key']
+
+    def get_queryset(self):
+        qs = TenantConfiguration.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class CustomFieldDefinitionViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomFieldDefinitionSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['tenant', 'target_model']
+
+    def get_queryset(self):
+        qs = CustomFieldDefinition.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs
+
+
+class CustomFieldValueViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomFieldValueSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = CustomFieldValue.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(definition__tenant=self.request.user.tenant)
+        return qs
+
+
+class CustomWorkflowViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomWorkflowSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['tenant', 'target_model']
+
+    def get_queryset(self):
+        qs = CustomWorkflow.objects.all()
+        if self.request.user.tenant_id:
+            return qs.filter(tenant=self.request.user.tenant)
+        return qs

@@ -13,6 +13,9 @@ import ProductInventory from "@/components/ProductInventory";
 import EquipmentRegistry from "@/components/EquipmentRegistry";
 import DocPermits from "@/components/DocPermits";
 import SpecializedModules from "@/components/SpecializedModules";
+import OnboardingWizard from "@/components/OnboardingWizard";
+import OrgStructureManager from "@/components/OrgStructureManager";
+import ModuleTogglePanel from "@/components/ModuleTogglePanel";
 
 import {
   RadarIcon,
@@ -130,6 +133,11 @@ export default function Shell() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Multi-Tenant enabled modules context state
+  const [enabledModules, setEnabledModules] = useState<string[]>(["CRM", "TRANSPORTATION", "INVENTORY", "REPORTING", "BILLING", "DMS"]);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [currentTenantName, setCurrentTenantName] = useState("Tame OS");
   
   // Accordion toggle states
   const [opsExpanded, setOpsExpanded] = useState(true);
@@ -412,11 +420,11 @@ export default function Shell() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-brand-indigo to-[#6366f1] flex items-center justify-center font-bold text-white shadow-sm">
-              T
+              {currentTenantName[0]}
             </div>
             <div>
               <h1 className="text-sm font-bold tracking-tight text-slate-900 uppercase font-mono">
-                Tame OS
+                {currentTenantName}
               </h1>
               <p className="text-[9px] text-slate-400 font-mono tracking-wider uppercase">Enterprise Execution OS</p>
             </div>
@@ -434,6 +442,14 @@ export default function Shell() {
 
         {/* Header Actions */}
         <div className="flex items-center gap-4">
+          
+          {/* Onboard Client Button */}
+          <button
+            onClick={() => setIsOnboardingOpen(true)}
+            className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 px-3 py-2 rounded-xl text-brand-cyan text-xs font-mono transition-colors cursor-pointer"
+          >
+            + Onboard Org
+          </button>
           
           {/* Search trigger button */}
           <button
@@ -555,8 +571,8 @@ export default function Shell() {
                 setExpanded: setOpsExpanded,
                 items: [
                   { id: "dashboard", label: "Dashboard", icon: GaugeIcon, color: "text-emerald-600" },
-                  { id: "control-tower", label: "Control Tower", icon: BroadcastIcon, color: "text-amber-600" },
-                  { id: "analytics-reports", label: "Analytics", icon: BarChartIcon, color: "text-blue-500" }
+                  { id: "control-tower", label: "Control Tower", icon: BroadcastIcon, color: "text-amber-600", module: "TRANSPORTATION" },
+                  { id: "analytics-reports", label: "Analytics", icon: BarChartIcon, color: "text-blue-500", module: "REPORTING" }
                 ]
               },
               {
@@ -565,19 +581,19 @@ export default function Shell() {
                 expanded: distExpanded,
                 setExpanded: setDistExpanded,
                 items: [
-                  { id: "dist-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500" },
-                  { id: "dist-trips", label: "Trips", icon: SplitIcon, color: "text-red-500" },
-                  { id: "dist-trip-planning", label: "Trip Planning", icon: PinCircleIcon, color: "text-yellow-500" },
-                  { id: "dist-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500" },
+                  { id: "dist-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500", module: "TRANSPORTATION" },
+                  { id: "dist-trips", label: "Trips", icon: SplitIcon, color: "text-red-500", module: "TRANSPORTATION" },
+                  { id: "dist-trip-planning", label: "Trip Planning", icon: PinCircleIcon, color: "text-yellow-500", module: "TRANSPORTATION" },
+                  { id: "dist-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500", module: "CRM" },
                   { id: "dist-addresses", label: "Addresses", icon: MapPinsIcon, color: "text-purple-500" },
-                  { id: "dist-items", label: "Items", icon: PackageIcon, color: "text-pink-500" },
-                  { id: "dist-storage-types", label: "Storage Types", icon: ShelvesIcon, color: "text-blue-500" },
-                  { id: "dist-order-config", label: "Order Config", icon: GearIcon, color: "text-blue-600" },
-                  { id: "dist-zones", label: "Zones", icon: CompassIcon, color: "text-blue-500" },
-                  { id: "dist-categories", label: "Categories", icon: ListIcon, color: "text-blue-500" },
-                  { id: "dist-channels", label: "Channels", icon: ForkIcon, color: "text-blue-500" },
+                  { id: "dist-items", label: "Items", icon: PackageIcon, color: "text-pink-500", module: "INVENTORY" },
+                  { id: "dist-storage-types", label: "Storage Types", icon: ShelvesIcon, color: "text-blue-500", module: "INVENTORY" },
+                  { id: "dist-order-config", label: "Order Config", icon: GearIcon, color: "text-blue-600", module: "TRANSPORTATION" },
+                  { id: "dist-zones", label: "Zones", icon: CompassIcon, color: "text-blue-500", module: "TRANSPORTATION" },
+                  { id: "dist-categories", label: "Categories", icon: ListIcon, color: "text-blue-500", module: "TRANSPORTATION" },
+                  { id: "dist-channels", label: "Channels", icon: ForkIcon, color: "text-blue-500", module: "CRM" },
                   { id: "dist-address-update", label: "Address Update", icon: ClockArrowIcon, color: "text-amber-800" },
-                  { id: "dist-reconciliation", label: "Order Reconciliation", icon: TableCheckIcon, color: "text-emerald-600" }
+                  { id: "dist-reconciliation", label: "Order Reconciliation", icon: TableCheckIcon, color: "text-emerald-600", module: "BILLING" }
                 ]
               },
               {
@@ -586,25 +602,25 @@ export default function Shell() {
                 expanded: transExpanded,
                 setExpanded: setTransExpanded,
                 items: [
-                  { id: "trans-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500" },
-                  { id: "trans-trips", label: "Trips", icon: SplitIcon, color: "text-red-500" },
-                  { id: "trans-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500" },
+                  { id: "trans-orders", label: "Orders", icon: PackageIcon, color: "text-blue-500", module: "TRANSPORTATION" },
+                  { id: "trans-trips", label: "Trips", icon: SplitIcon, color: "text-red-500", module: "TRANSPORTATION" },
+                  { id: "trans-customers", label: "Customers", icon: UserCircleIcon, color: "text-emerald-500", module: "CRM" },
                   { id: "trans-addresses", label: "Addresses", icon: MapPinsIcon, color: "text-purple-500" },
-                  { id: "trans-locations", label: "Locations", icon: PinIcon, color: "text-emerald-500" },
-                  { id: "trans-lanes", label: "Lanes", icon: LanesIcon, color: "text-amber-800" },
-                  { id: "trans-milestones", label: "Milestones", icon: FlagIcon, color: "text-purple-500" },
-                  { id: "trans-milestone-templates", label: "Milestone Templates", icon: DocListIcon, color: "text-purple-650" },
-                  { id: "trans-charges", label: "Charges", icon: CoinsIcon, color: "text-teal-600" },
-                  { id: "trans-invoices", label: "Invoices", icon: InvoiceIcon, color: "text-blue-500" },
-                  { id: "trans-container-types", label: "Container Types", icon: CarrierTruckIcon, color: "text-blue-500" },
-                  { id: "trans-trailer-types", label: "Trailer Types", icon: TrailerGearIcon, color: "text-blue-500" },
-                  { id: "trans-trailers", label: "Trailers", icon: TrailerIcon, color: "text-blue-500" },
-                  { id: "trans-products", label: "Products", icon: PackageIcon, color: "text-blue-500" },
-                  { id: "trans-contracts", label: "Customer Contracts", icon: DocPenIcon, color: "text-blue-500" },
-                  { id: "trans-geofences", label: "Geofences", icon: RadarSweepIcon, color: "text-blue-500" },
-                  { id: "trans-patient", label: "Patient Transport", icon: AmbulanceIcon, color: "text-blue-500" },
+                  { id: "trans-locations", label: "Locations", icon: PinIcon, color: "text-emerald-500", module: "TRANSPORTATION" },
+                  { id: "trans-lanes", label: "Lanes", icon: LanesIcon, color: "text-amber-800", module: "TRANSPORTATION" },
+                  { id: "trans-milestones", label: "Milestones", icon: FlagIcon, color: "text-purple-500", module: "TRANSPORTATION" },
+                  { id: "trans-milestone-templates", label: "Milestone Templates", icon: DocListIcon, color: "text-purple-650", module: "TRANSPORTATION" },
+                  { id: "trans-charges", label: "Charges", icon: CoinsIcon, color: "text-teal-600", module: "BILLING" },
+                  { id: "trans-invoices", label: "Invoices", icon: InvoiceIcon, color: "text-blue-500", module: "BILLING" },
+                  { id: "trans-container-types", label: "Container Types", icon: CarrierTruckIcon, color: "text-blue-500", module: "INVENTORY" },
+                  { id: "trans-trailer-types", label: "Trailer Types", icon: TrailerGearIcon, color: "text-blue-500", module: "INVENTORY" },
+                  { id: "trans-trailers", label: "Trailers", icon: TrailerIcon, color: "text-blue-500", module: "INVENTORY" },
+                  { id: "trans-products", label: "Products", icon: PackageIcon, color: "text-blue-500", module: "INVENTORY" },
+                  { id: "trans-contracts", label: "Customer Contracts", icon: DocPenIcon, color: "text-blue-500", module: "CRM" },
+                  { id: "trans-geofences", label: "Geofences", icon: RadarSweepIcon, color: "text-blue-500", module: "TRANSPORTATION" },
+                  { id: "trans-patient", label: "Patient Transport", icon: AmbulanceIcon, color: "text-blue-500", module: "TRANSPORTATION" },
                   { id: "trans-users", label: "Users", icon: UsersIcon, color: "text-blue-500" },
-                  { id: "trans-assets", label: "Assets", icon: GridIcon, color: "text-blue-500" }
+                  { id: "trans-assets", label: "Assets", icon: GridIcon, color: "text-blue-500", module: "TRANSPORTATION" }
                 ]
               },
               {
@@ -613,16 +629,18 @@ export default function Shell() {
                 expanded: configExpanded,
                 setExpanded: setConfigExpanded,
                 items: [
+                  { id: "config-org-structure", label: "Org Structure", icon: TreeIcon, color: "text-indigo-600" },
+                  { id: "config-modules", label: "Modules & Metadata", icon: GearIcon, color: "text-indigo-650" },
                   { id: "config-branches", label: "Branches", icon: TreeIcon, color: "text-emerald-600" },
                   { id: "config-projects", label: "Projects", icon: CalendarIcon, color: "text-pink-500" },
-                  { id: "config-vehicle-types", label: "Vehicle Types", icon: TruckBusIcon, color: "text-amber-600" },
-                  { id: "config-exceptions", label: "Exceptions", icon: MinusCircleIcon, color: "text-slate-400" },
-                  { id: "config-package-types", label: "Package Types", icon: PalletBoxIcon, color: "text-slate-500" },
-                  { id: "config-doc-types", label: "Document Type", icon: PageIcon, color: "text-slate-900" },
-                  { id: "config-permits", label: "Permits", icon: FolderIcon, color: "text-blue-500" },
-                  { id: "config-expense-types", label: "Expense Types", icon: CreditCardIcon, color: "text-blue-500" },
-                  { id: "config-vendors", label: "Vendors", icon: StoreIcon, color: "text-blue-500" },
-                  { id: "config-reports", label: "Reports", icon: BarChartIcon, color: "text-blue-500" },
+                  { id: "config-vehicle-types", label: "Vehicle Types", icon: TruckBusIcon, color: "text-amber-600", module: "TRANSPORTATION" },
+                  { id: "config-exceptions", label: "Exceptions", icon: MinusCircleIcon, color: "text-slate-400", module: "TRANSPORTATION" },
+                  { id: "config-package-types", label: "Package Types", icon: PalletBoxIcon, color: "text-slate-500", module: "INVENTORY" },
+                  { id: "config-doc-types", label: "Document Type", icon: PageIcon, color: "text-slate-900", module: "DMS" },
+                  { id: "config-permits", label: "Permits", icon: FolderIcon, color: "text-blue-500", module: "DMS" },
+                  { id: "config-expense-types", label: "Expense Types", icon: CreditCardIcon, color: "text-blue-500", module: "BILLING" },
+                  { id: "config-vendors", label: "Vendors", icon: StoreIcon, color: "text-blue-500", module: "CRM" },
+                  { id: "config-reports", label: "Reports", icon: BarChartIcon, color: "text-blue-500", module: "REPORTING" },
                   { id: "config-integrations", label: "Integrations", icon: LinkIcon, color: "text-blue-500" },
                   { id: "config-support", label: "Support", icon: IdCardIcon, color: "text-emerald-600" },
                   { id: "config-download-apk", label: "Download APK", icon: DownloadCloudIcon, color: "text-emerald-600" }
@@ -641,24 +659,26 @@ export default function Shell() {
                 )}
                 {(cat.expanded || sidebarCollapsed) && (
                   <div className="flex flex-col gap-0.5">
-                    {cat.items.map((item) => {
-                      const isActive = activeTab === item.id;
-                      const IconComponent = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setActiveTab(item.id)}
-                          className={`w-full flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold font-sans transition-all border ${
-                            isActive
-                              ? "bg-[#1a5b6e] border-[#1a5b6e] text-white shadow-xs"
-                              : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                          } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
-                        >
-                          <IconComponent size={16} className={isActive ? "text-white" : item.color} />
-                          {!sidebarCollapsed && <span>{item.label}</span>}
-                        </button>
-                      );
-                    })}
+                    {cat.items
+                      .filter((item: any) => !item.module || enabledModules.includes(item.module))
+                      .map((item) => {
+                        const isActive = activeTab === item.id;
+                        const IconComponent = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`w-full flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold font-sans transition-all border ${
+                              isActive
+                                ? "bg-[#1a5b6e] border-[#1a5b6e] text-white shadow-xs"
+                                : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                            } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                          >
+                            <IconComponent size={16} className={isActive ? "text-white" : item.color} />
+                            {!sidebarCollapsed && <span>{item.label}</span>}
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -724,6 +744,10 @@ export default function Shell() {
           {/* Configurations */}
           {activeTab === "config-branches" && <MasterConfig />}
           {activeTab === "config-permits" && <DocPermits />}
+          {activeTab === "config-org-structure" && <OrgStructureManager />}
+          {activeTab === "config-modules" && (
+            <ModuleTogglePanel />
+          )}
 
           {/* Specialized Custom Modules Fallback */}
           {[
@@ -740,6 +764,22 @@ export default function Shell() {
           )}
         </main>
       </div>
+
+      {/* Dynamic Overlay Modal for Tenant Onboarding Wizard */}
+      {isOnboardingOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsOnboardingOpen(false)} />
+          <div className="relative z-10 w-full max-w-2xl">
+            <OnboardingWizard
+              onOnboardComplete={(tenantId, companyName, adminUsername) => {
+                setCurrentTenantName(companyName);
+                setIsOnboardingOpen(false);
+              }}
+              onCancel={() => setIsOnboardingOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Global Footer */}
       <footer className="border-t border-slate-200 bg-white px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] text-slate-400 font-mono shadow-xs">

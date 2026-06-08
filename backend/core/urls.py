@@ -7,6 +7,9 @@ from .views import (
     OrderViewSet, JobViewSet, TripViewSet,
     PodAttachmentViewSet, ExpenseViewSet, InvoiceViewSet,
     DashboardViewSet, ControlTowerViewSet,
+    RoleTemplateViewSet, BusinessUnitViewSet, BranchViewSet,
+    DepartmentViewSet, TenantModuleViewSet, TenantConfigurationViewSet,
+    CustomFieldDefinitionViewSet, CustomFieldValueViewSet, CustomWorkflowViewSet,
 )
 
 router = DefaultRouter()
@@ -26,6 +29,15 @@ router.register('expenses', ExpenseViewSet, basename='expense')
 router.register('invoices', InvoiceViewSet, basename='invoice')
 router.register('dashboard', DashboardViewSet, basename='dashboard')
 router.register('control-tower', ControlTowerViewSet, basename='control-tower')
+router.register('role-templates', RoleTemplateViewSet, basename='role-template')
+router.register('business-units', BusinessUnitViewSet, basename='business-unit')
+router.register('branches', BranchViewSet, basename='branch')
+router.register('departments', DepartmentViewSet, basename='department')
+router.register('tenant-modules', TenantModuleViewSet, basename='tenant-module')
+router.register('tenant-configs', TenantConfigurationViewSet, basename='tenant-config')
+router.register('custom-fields', CustomFieldDefinitionViewSet, basename='custom-field')
+router.register('custom-field-values', CustomFieldValueViewSet, basename='custom-field-value')
+router.register('custom-workflows', CustomWorkflowViewSet, basename='custom-workflow')
 
 urlpatterns = [
     path('', include(router.urls)),
