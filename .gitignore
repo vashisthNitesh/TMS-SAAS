@@ -4,8 +4,6 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
-dist/
-build/
 .eggs/
 
 # Django
@@ -24,6 +22,7 @@ env/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 
 # Misc
 .DS_Store
